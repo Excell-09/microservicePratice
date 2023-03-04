@@ -1,49 +1,63 @@
-const cors = require('cors')
-const express = require('express')
-
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const app = express();
+app.use(bodyParser.json());
+app.use(cors());
 
-app.use(cors())
-app.use(express.json());
+const posts = {};
 
-const posts = {}
-
-app.get('/posts', async(req, res) => {
-  res.json(posts)
+app.get('/posts', (req, res) => {
+  res.send(posts);
 });
 
-app.post('/events', async(req, res) => {
-  const {type,data} = req.body
+app.post('/events', (req, res) => {
+  const { type, data } = req.body;
 
-  if(type === "PostCreated"){
-    const {id,title} = data
-    posts[id] = {id, title,comments:[]}
+  if (type === 'PostCreated') {
+    const { id, title } = data;
+
+    posts[id] = { id, title, comments: [] };
+  }
+  
+
+  if (type === 'CommentCreated') {
+    const { id, content, postId, status } = data;
+
+    const post = posts[postId];
+    post.comments.push({ id, content, status });
   }
 
-  if(type === "CommentCreated"){
-    const {id,content,postId,status} = data
 
-    const post = posts[postId]
-    post.comments.push({
-    id, content,status
-    })
-  }
-  if(type === "CommentUpdated"){
-    const {id,content,postId,status} = data
+  if (type === 'CommentUpdated') {
+    const { id, content, postId, status } = data;
 
-    const post = posts[postId]
+    const post = posts[postId];
+    const comment = post.comments.find(comment => {
+      return comment.id === id;
+    });
 
-    const comment = post.comments.find(comment => comment.id === id)
-    comment.status = status
-    comment.content = content
+    comment.status = status;
+    
+    if(status === "pending" ){
+      comment.content = "Comment was moderated, wait";
+    }
+    if(comment.status === "rejected"){
+      comment.content = "Comment was rejected";
+    }
+    if(comment.status === "approved"){
+      comment.content = content;
+    }
+   
     
   }
 
-  res.status({})
+  console.log(posts);
+
+  res.send({});
 });
 
-app.listen(4002,()=>{
-  console.log('Server Listen on 4002')
-})
-
+app.listen(4002, () => {
+  console.log('Listening on 4002');
+});
